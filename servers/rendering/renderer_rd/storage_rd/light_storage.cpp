@@ -889,17 +889,21 @@ void LightStorage::update_light_buffers(RenderDataRD *p_render_data, const Paged
 
 		if (projector.is_valid()) {
 			Rect2 rect = texture_storage->decal_atlas_get_texture_rect(projector);
-
+			
 			if (type == RS::LIGHT_SPOT) {
 				light_data.projector_rect[0] = rect.position.x;
 				light_data.projector_rect[1] = rect.position.y + rect.size.height; //flip because shadow is flipped
 				light_data.projector_rect[2] = rect.size.width;
 				light_data.projector_rect[3] = -rect.size.height;
 			} else {
-				light_data.projector_rect[0] = rect.position.x;
-				light_data.projector_rect[1] = rect.position.y;
-				light_data.projector_rect[2] = rect.size.width;
-				light_data.projector_rect[3] = rect.size.height * 0.5; //used by dp, so needs to be half
+				RID decal_atlas_texture = texture_storage->decal_atlas_get_texture();
+				Size2i decal_atlas_size = RD::get_singleton()->texture_size(decal_atlas_texture);
+				Size2 atlas_pixel_size = Size2(1.0 / (float)decal_atlas_size.width, 1.0 / (float)decal_atlas_size.height);
+				float sample_offset = 0.5; // Offsets the decal to avoid filtering artefacts
+				light_data.projector_rect[0] = rect.position.x + atlas_pixel_size.width * sample_offset;
+				light_data.projector_rect[1] = rect.position.y + atlas_pixel_size.height * sample_offset;
+				light_data.projector_rect[2] = rect.size.width - atlas_pixel_size.width * sample_offset * 2.0;
+				light_data.projector_rect[3] = (rect.size.height - atlas_pixel_size.height * sample_offset * 2.0) * 0.5; //used by dp, so needs to be half
 			}
 		} else {
 			light_data.projector_rect[0] = 0;
